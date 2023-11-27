@@ -21,7 +21,6 @@ func main() {
 	mysqlUsername := os.Getenv("MYSQL_USERNAME")
 	mysqlPassword := os.Getenv("MYSQL_PASSWORD")
 	mysqlAddress := os.Getenv("MYSQL_ADDRESS")
-	appPort := os.Getenv("APP_PORT")
 	jwtSecretKey := os.Getenv("JWT_SECRET_KEY")
 
 	// 初始化数据库连接
@@ -39,7 +38,7 @@ func main() {
 	r := router.Setup(database, []byte(jwtSecretKey))
 
 	// 启动 Gin 服务器
-	if err := r.Run(":" + appPort); err != nil {
+	if err := r.Run(":" + "80"); err != nil {
 		log.Fatal("Failed to run server:", err)
 	}
 }
