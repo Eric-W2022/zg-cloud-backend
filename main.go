@@ -44,7 +44,7 @@ func main() {
 	r.GET("/check-token", checkToken)
 
 	// 启动服务
-	r.Run(":8080")
+	r.Run(":80")
 }
 
 // 登录处理器
