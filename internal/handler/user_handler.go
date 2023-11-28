@@ -19,7 +19,8 @@ func NewUserHandler(userService *service.UserService) *UserHandler {
 }
 
 func (h *UserHandler) GetUser(c *gin.Context) {
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("UserID")
+
 	if !exists {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "User ID not found"})
 		return
@@ -34,7 +35,6 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"UserID":              user.UserID,
 		"Username":            user.Username,
-		"Organizations":       user.Organizations,
 		"MemberOrganizations": user.MemberOrganizations,
 	})
 }

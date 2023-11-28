@@ -12,6 +12,7 @@ import (
 // Claims 用于 JWT 认证的自定义声明结构体
 type Claims struct {
 	Username string `json:"username"`
+	UserID   string `json:"userid"`
 	jwt.StandardClaims
 }
 

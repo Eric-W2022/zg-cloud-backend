@@ -39,15 +39,17 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	// 使用 AuthService 来验证用户凭据
 	user, err := h.AuthService.AuthenticateUser(creds.Username, creds.Password)
+	//fmt.Print(user)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "登录失败"})
 		return
 	}
 
 	// 创建 JWT 令牌
-	expirationTime := time.Now().Add(5 * time.Minute)
+	expirationTime := time.Now().Add(72 * time.Hour)
 	claims := &service.Claims{
 		Username: user.Username,
+		UserID:   user.UserID,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 		},
