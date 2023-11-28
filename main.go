@@ -12,9 +12,11 @@ import (
 )
 
 func main() {
-	// 加载 .env 文件
-	if err := godotenv.Load(); err != nil {
-		log.Fatal("Error loading .env file:", err)
+	// 尝试加载 .env 文件，但如果不存在则忽略错误
+	if _, err := os.Stat(".env"); err == nil {
+		if err := godotenv.Load(); err != nil {
+			log.Fatal("Error loading .env file:", err)
+		}
 	}
 
 	// 读取环境变量
