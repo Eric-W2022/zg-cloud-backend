@@ -22,11 +22,11 @@ func main() {
 	// 读取环境变量
 	mysqlUsername := os.Getenv("MYSQL_USERNAME")
 	mysqlPassword := os.Getenv("MYSQL_PASSWORD")
-	mysqlAddress := os.Getenv("MYSQL_ADDRESS")
+	//mysqlAddress := os.Getenv("MYSQL_ADDRESS")
 	jwtSecretKey := os.Getenv("JWT_SECRET_KEY")
 
 	// 初始化数据库连接
-	database, err := db.InitDatabase(mysqlUsername, mysqlPassword, mysqlAddress)
+	database, err := db.InitDatabase(mysqlUsername, mysqlPassword, "gz-cdb-6kgcteld.sql.tencentcdb.com:63181")
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
