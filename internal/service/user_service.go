@@ -3,6 +3,7 @@
 package service
 
 import (
+	"fmt"
 	"zcloud-bg/internal/model"
 	"zcloud-bg/internal/repository"
 )
@@ -20,10 +21,11 @@ func NewUserService(userRepo *repository.UserRepository) *UserService {
 func (s *UserService) GetUserByID(userID string) (*model.User, error) {
 	// 从 UserRepository 获取用户
 	user, err := s.UserRepo.FindByID(userID)
+
 	if err != nil {
+		fmt.Printf("Error in FindByID: %v\n", err)
 		return nil, err
 	}
-
 	// 这里可以添加更多的业务逻辑，如加载用户的组织信息等
 
 	return user, nil

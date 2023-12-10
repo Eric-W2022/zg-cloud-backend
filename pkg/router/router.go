@@ -29,27 +29,43 @@ func CORS() gin.HandlerFunc {
 	}
 }
 
-// Setup 初始化并返回一个配置好的 Gin 路由器
+// Setup initializes and returns a configured Gin router
 func Setup(db *gorm.DB, jwtKey []byte) *gin.Engine {
 	r := gin.Default()
 
-	// 使用 CORS 中间件
+	// Use CORS middleware
 	r.Use(CORS())
 
+	// User related setup
 	userRepo := &repository.UserRepository{DB: db}
-	authService := &service.AuthService{UserRepo: userRepo}
-	authHandler := handler.NewAuthHandler(authService, jwtKey)
 	userService := service.NewUserService(userRepo)
 	userHandler := handler.NewUserHandler(userService)
 
-	// 公共路由
+	// Conversation related setup
+	conversationRepo := &repository.ConversationRepository{DB: db}
+	conversationService := service.NewConversationService(conversationRepo)
+	conversationHandler := handler.NewConversationHandler(conversationService)
+
+	// Auth related setup
+	authService := &service.AuthService{UserRepo: userRepo}
+	authHandler := handler.NewAuthHandler(authService, userService, jwtKey) // 传递 userService
+
+	// Public routes
 	r.POST("/login", authHandler.Login)
 
-	// 需要身份验证的路由组
+	// Authenticated routes group
 	authRoutes := r.Group("/").Use(jwt.AuthMiddleware(jwtKey))
 	{
-		// 添加需要验证的路由
+		// User routes
 		authRoutes.GET("/user/info", userHandler.GetUser)
+
+		// Conversation routes
+		authRoutes.POST("/conversation", conversationHandler.CreateConversation)
+		authRoutes.GET("/conversation/:conversationID", conversationHandler.GetConversation)
+		authRoutes.GET("/conversations", conversationHandler.ListConversations)
+		authRoutes.PUT("/conversation/:conversationID", conversationHandler.UpdateConversation)
+		authRoutes.DELETE("/conversation/:conversationID", conversationHandler.DeleteConversation)
+		// Add more conversation routes as needed
 	}
 
 	return r

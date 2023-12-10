@@ -1,3 +1,5 @@
+// internal/model/organization.go
+
 package model
 
 import (

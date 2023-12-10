@@ -3,7 +3,6 @@
 package jwt
 
 import (
-	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -29,7 +28,7 @@ func AuthMiddleware(jwtKey []byte) gin.HandlerFunc {
 		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 			return jwtKey, nil
 		})
-		fmt.Print(claims)
+		//fmt.Print(claims)
 
 		if err != nil || !token.Valid {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
@@ -39,6 +38,7 @@ func AuthMiddleware(jwtKey []byte) gin.HandlerFunc {
 		// 设置用户名到 Gin 上下文
 		c.Set("username", claims.Username)
 		c.Set("UserID", claims.UserID)
+		c.Set("OrganizationID", claims.OrganizationID)
 		c.Next()
 	}
 }
