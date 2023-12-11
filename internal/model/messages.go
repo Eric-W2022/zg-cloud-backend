@@ -21,4 +21,5 @@ type Message struct {
 	InputTokens    int            `gorm:"type:int;comment:输入的令牌数量" json:"input_tokens"`
 	OutputTokens   int            `gorm:"type:int;comment:输出的令牌数量" json:"output_tokens"`
 	TotalTokens    int            `gorm:"type:int;comment:总令牌数量" json:"total_tokens"`
+	Cost           *float64       `gorm:"type:decimal(10,6);comment:花费人民币" json:"cost,omitempty"`
 }

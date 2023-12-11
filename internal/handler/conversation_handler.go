@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"net/http"
+	"strconv"
 	"zcloud-bg/internal/model"
 	"zcloud-bg/internal/service"
 )
@@ -49,14 +50,68 @@ func (h *ConversationHandler) UpdateConversation(c *gin.Context) {
 		return
 	}
 
-	var conversationUpdate model.Conversation
-	if err := c.BindJSON(&conversationUpdate); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
+	// Validate that conversationID is a valid UUID
+	if _, err := uuid.Parse(conversationID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Conversation ID format"})
 		return
 	}
 
-	conversationUpdate.ConversationID = conversationID
+	// Define a structure to receive optional data from the request body
+	type updateRequest struct {
+		Title       *string  `json:"title"`
+		Temperature *float32 `json:"temperature"`
+		Model       *string  `json:"model"`
+	}
 
+	var req updateRequest
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	conversationUpdate := model.Conversation{
+		ConversationID: conversationID,
+	}
+
+	// Update title if provided
+	if req.Title != nil {
+		if len(*req.Title) > 50 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Title exceeds maximum length of 50 characters"})
+			return
+		}
+		conversationUpdate.Title = *req.Title
+	}
+
+	// Update temperature if provided
+	if req.Temperature != nil {
+		conversationUpdate.Temperature = *req.Temperature
+	}
+
+	// Update model if provided
+	if req.Model != nil {
+		if len(*req.Model) > 100 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Model exceeds maximum length of 100 characters"})
+			return
+		}
+		conversationUpdate.Model = *req.Model
+	}
+
+	// Fetch organizationID from context
+	rawOrganizationID, orgExists := c.Get("OrganizationID")
+	if !orgExists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "OrganizationID not found in context"})
+		return
+	}
+
+	organizationID, ok := rawOrganizationID.(string)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "OrganizationID has an invalid type"})
+		return
+	}
+
+	conversationUpdate.OrganizationID = organizationID
+
+	// Proceed with updating the conversation
 	err := h.ConversationService.UpdateConversation(&conversationUpdate)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating conversation"})
@@ -112,6 +167,33 @@ func (h *ConversationHandler) CreateConversation(c *gin.Context) {
 	if !orgOK {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "OrganizationID is not a string"})
 		return
+	}
+
+	// 默认温度 0
+	newConversation.Temperature = 0
+
+	// 如果有温度则校验
+	temperatureStr := c.Query("temperature")
+	if temperatureStr != "" {
+		var err error
+		temperature, err := strconv.ParseFloat(temperatureStr, 32)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid temperature format"})
+			return
+		}
+		newConversation.Temperature = float32(temperature)
+	}
+
+	// 默认模型设置空
+	newConversation.Model = ""
+
+	// 有模型则校验
+	modelName := c.Query("modelName")
+	if len(modelName) > 100 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Model exceeds maximum length of 100 characters"})
+		return
+	} else if modelName != "" {
+		newConversation.Model = modelName
 	}
 
 	newConversation.UserID = userIDStr

@@ -3,6 +3,7 @@
 package handler
 
 import (
+	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -11,18 +12,21 @@ import (
 )
 
 // AuthHandler 结构体包含了需要的服务
+// AuthHandler 结构体包含了需要的服务
 type AuthHandler struct {
-	AuthService *service.AuthService
-	UserService *service.UserService // 这需要被初始化
-	JwtKey      []byte
+	AuthService               *service.AuthService
+	UserService               *service.UserService               // 这需要被初始化
+	OrganizationMemberService *service.OrganizationMemberService // 新增 OrganizationMemberService
+	JwtKey                    []byte
 }
 
-// 修改构造函数以接收 UserService
-func NewAuthHandler(authService *service.AuthService, userService *service.UserService, jwtKey []byte) *AuthHandler {
+// NewAuthHandler 修改构造函数以接收 UserService 和 OrganizationMemberService
+func NewAuthHandler(authService *service.AuthService, userService *service.UserService, organizationMemberService *service.OrganizationMemberService, jwtKey []byte) *AuthHandler {
 	return &AuthHandler{
-		AuthService: authService,
-		UserService: userService, // 设置 UserService
-		JwtKey:      jwtKey,
+		AuthService:               authService,
+		UserService:               userService,               // 设置 UserService
+		OrganizationMemberService: organizationMemberService, // 设置 OrganizationMemberService
+		JwtKey:                    jwtKey,
 	}
 }
 
@@ -47,18 +51,18 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	// 判断是否有多企业，如果有的话让用户选择企业登录，如果只有一个企业就直接登录
-	userInfo, err := h.UserService.GetUserByID(user.UserID)
+	// 使用 OrganizationMemberService 获取用户所属的组织
+	userOrganizations, err := h.OrganizationMemberService.GetUserOrganizations(user.UserID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving user"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving user organizations"})
 		return
 	}
 
 	// 如果提供了组织 ID，验证用户是否属于该组织
 	if creds.OrganizationID != nil {
 		found := false
-		for _, org := range userInfo.Organizations {
-			if *creds.OrganizationID == org.OrganizationID {
+		for _, orgMember := range userOrganizations {
+			if *creds.OrganizationID == orgMember.OrganizationID {
 				found = true
 				break
 			}
@@ -82,13 +86,15 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	// 如果提供了组织 ID，将其设置为 JWT Claims 中的 OrganizationID
 	if creds.OrganizationID != nil {
 		claims.OrganizationID = *creds.OrganizationID
-	} else if len(userInfo.Organizations) > 0 {
+	} else if len(userOrganizations) > 0 {
 		// 如果没有提供组织 ID 但用户属于至少一个组织，使用第一个组织的 ID
-		claims.OrganizationID = userInfo.Organizations[0].OrganizationID
+		claims.OrganizationID = userOrganizations[0].OrganizationID
 	} else {
 		// 用户不属于任何组织
 		claims.OrganizationID = ""
 	}
+
+	fmt.Print(claims.OrganizationID)
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString(h.JwtKey)

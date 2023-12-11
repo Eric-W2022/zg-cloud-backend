@@ -1,0 +1,154 @@
+// internal/handler/message_handler.go
+
+package handler
+
+import (
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"net/http"
+	"time"
+	"zcloud-bg/internal/model"
+	"zcloud-bg/internal/service"
+)
+
+type MessageHandler struct {
+	MessageService *service.MessageService
+}
+
+func NewMessageHandler(messageService *service.MessageService) *MessageHandler {
+	return &MessageHandler{
+		MessageService: messageService,
+	}
+}
+
+// GetMessage retrieves a message by its ID
+func (h *MessageHandler) GetMessage(c *gin.Context) {
+	messageID := c.Param("messageID")
+	if messageID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Message ID not provided"})
+		return
+	}
+
+	message, err := h.MessageService.GetMessageByID(messageID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving message"})
+		return
+	}
+
+	c.JSON(http.StatusOK, message)
+}
+
+// UpdateMessage updates an existing message
+func (h *MessageHandler) UpdateMessage(c *gin.Context) {
+	messageID := c.Param("messageID")
+	if messageID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Message ID not provided"})
+		return
+	}
+
+	type updateRequest struct {
+		Content string `json:"content"`
+	}
+
+	var req updateRequest
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	messageUpdate := model.Message{
+		MessageID: messageID,
+		Content:   req.Content,
+	}
+
+	err := h.MessageService.UpdateMessage(&messageUpdate)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating message"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Message updated successfully"})
+}
+
+// DeleteMessage deletes a message by its ID
+func (h *MessageHandler) DeleteMessage(c *gin.Context) {
+	messageID := c.Param("messageID")
+	if messageID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Message ID not provided"})
+		return
+	}
+
+	err := h.MessageService.DeleteMessage(messageID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error deleting message"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Message deleted successfully"})
+}
+
+//MessageID      string         `gorm:"type:char(36);primaryKey;comment:消息的唯一标识符" json:"message_id"`
+//ConversationID string         `gorm:"type:char(36);comment:对话的唯一标识符" json:"conversation_id"`
+//SenderID       string         `gorm:"type:char(36);comment:发送者的唯一标识符" json:"sender_id"`
+//Role           string         `gorm:"type:varchar(255);comment:发送者角色" json:"role"`
+//Model          string         `gorm:"type:varchar(255);comment:处理消息的模型或系统" json:"model"`
+//Content        string         `gorm:"type:text;comment:消息内容" json:"content"`
+//CreatedAt      time.Time      `gorm:"type:datetime;default:CURRENT_TIMESTAMP;comment:消息创建时间" json:"created_at"`
+//UpdatedAt      time.Time      `gorm:"type:datetime;comment:消息最后更新时间" json:"updated_at"`
+//DeletedAt      gorm.DeletedAt `gorm:"type:datetime;comment:消息删除时间" json:"deleted_at,omitempty"`
+//InputTokens    int            `gorm:"type:int;comment:输入的令牌数量" json:"input_tokens"`
+//OutputTokens   int            `gorm:"type:int;comment:输出的令牌数量" json:"output_tokens"`
+//TotalTokens    int            `gorm:"type:int;comment:总令牌数量" json:"total_tokens"`
+
+// CreateMessage creates a new message
+func (h *MessageHandler) CreateMessage(c *gin.Context) {
+	var newMessage model.Message
+
+	// Assuming we extract senderID, conversationID, and content from the request body
+	if err := c.BindJSON(&newMessage); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	// 解析 UserID
+	userID, exists := c.Get("UserID")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "UserID not found in context"})
+		return
+	}
+
+	userIDStr, ok := userID.(string)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "UserID is not a string"})
+		return
+	}
+
+	newMessage.MessageID = uuid.New().String() // Generate a new UUID for the message
+	newMessage.SenderID = userIDStr
+	newMessage.CreatedAt = time.Now() // 设置当前时间为消息创建时间
+
+	err := h.MessageService.CreateMessage(&newMessage)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating message"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message":    "Message created successfully",
+		"message_id": newMessage.MessageID,
+		"created_at": newMessage.CreatedAt,
+	})
+}
+
+// ListMessages lists messages based on filtering parameters
+func (h *MessageHandler) ListMessages(c *gin.Context) {
+	conversationID := c.Query("conversationID")
+
+	messages, err := h.MessageService.ListMessages(conversationID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error listing messages"})
+		return
+	}
+
+	c.JSON(http.StatusOK, messages)
+}

@@ -29,43 +29,58 @@ func CORS() gin.HandlerFunc {
 	}
 }
 
-// Setup initializes and returns a configured Gin router
+// Setup 初始化并返回一个配置好的 Gin 路由器
 func Setup(db *gorm.DB, jwtKey []byte) *gin.Engine {
 	r := gin.Default()
 
-	// Use CORS middleware
+	// 使用 CORS 中间件
 	r.Use(CORS())
 
-	// User related setup
+	// 用户相关设置
 	userRepo := &repository.UserRepository{DB: db}
 	userService := service.NewUserService(userRepo)
 	userHandler := handler.NewUserHandler(userService)
 
-	// Conversation related setup
+	organizationMemberRepo := &repository.OrganizationMemberRepository{DB: db}
+	organizationMemberService := service.NewOrganizationMemberService(organizationMemberRepo) // Add OrganizationMemberService
+
+	// 授权相关设置
+	authService := &service.AuthService{UserRepo: userRepo}
+	authHandler := handler.NewAuthHandler(authService, userService, organizationMemberService, jwtKey) // 传递 userService
+
+	// 对话（会话）相关设置
 	conversationRepo := &repository.ConversationRepository{DB: db}
 	conversationService := service.NewConversationService(conversationRepo)
 	conversationHandler := handler.NewConversationHandler(conversationService)
 
-	// Auth related setup
-	authService := &service.AuthService{UserRepo: userRepo}
-	authHandler := handler.NewAuthHandler(authService, userService, jwtKey) // 传递 userService
+	// 消息相关设置
+	messageRepo := &repository.MessageRepository{DB: db}
+	messageService := service.NewMessageService(messageRepo)
+	messageHandler := handler.NewMessageHandler(messageService)
 
-	// Public routes
+	// 公开路由
 	r.POST("/login", authHandler.Login)
 
-	// Authenticated routes group
+	// 经过认证的路由组
 	authRoutes := r.Group("/").Use(jwt.AuthMiddleware(jwtKey))
 	{
-		// User routes
+		// 用户路由
 		authRoutes.GET("/user/info", userHandler.GetUser)
 
-		// Conversation routes
+		// 对话（会话）路由
 		authRoutes.POST("/conversation", conversationHandler.CreateConversation)
 		authRoutes.GET("/conversation/:conversationID", conversationHandler.GetConversation)
 		authRoutes.GET("/conversations", conversationHandler.ListConversations)
 		authRoutes.PUT("/conversation/:conversationID", conversationHandler.UpdateConversation)
 		authRoutes.DELETE("/conversation/:conversationID", conversationHandler.DeleteConversation)
-		// Add more conversation routes as needed
+
+		// 消息路由
+		authRoutes.POST("/message", messageHandler.CreateMessage)
+		authRoutes.GET("/message/:messageID", messageHandler.GetMessage)
+		authRoutes.PUT("/message/:messageID", messageHandler.UpdateMessage)
+		authRoutes.DELETE("/message/:messageID", messageHandler.DeleteMessage)
+		authRoutes.GET("/messages", messageHandler.ListMessages)
+
 	}
 
 	return r

@@ -30,7 +30,8 @@ func (repo *ConversationRepository) GetConversationByID(id string) (*model.Conve
 
 // UpdateConversation updates a given conversation.
 func (repo *ConversationRepository) UpdateConversation(conversation *model.Conversation) error {
-	result := repo.DB.Save(conversation)
+	// 使用 Updates 方法仅更新已更改的字段
+	result := repo.DB.Model(&model.Conversation{}).Where("conversation_id = ?", conversation.ConversationID).Updates(conversation)
 	return result.Error
 }
 
