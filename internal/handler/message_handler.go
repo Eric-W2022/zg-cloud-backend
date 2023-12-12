@@ -140,6 +140,66 @@ func (h *MessageHandler) CreateMessage(c *gin.Context) {
 	})
 }
 
+type MessageCreationResponse struct {
+	MessageID string    `json:"message_id"`
+	Content   string    `json:"content"`
+	Role      string    `json:"role"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+func (h *MessageHandler) CreateMultipleMessages(c *gin.Context) {
+	var messages []model.Message
+
+	// 绑定请求体到消息数组
+	if err := c.BindJSON(&messages); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	// 解析 UserID
+	userID, exists := c.Get("UserID")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "UserID not found in context"})
+		return
+	}
+
+	userIDStr, ok := userID.(string)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "UserID is not a string"})
+		return
+	}
+
+	var creationResponses []MessageCreationResponse
+	currentTime := time.Now() // 设置初始时间为当前时间
+
+	// 循环创建每个消息
+	for i := range messages {
+		messages[i].MessageID = uuid.New().String() // 为每个消息生成一个新的UUID
+		messages[i].SenderID = userIDStr
+		messages[i].CreatedAt = currentTime.Add(time.Second * time.Duration(i)) // 设置创建时间，并递增
+
+		err := h.MessageService.CreateMessage(&messages[i])
+		if err != nil {
+			// 如果创建过程中出现错误，可能需要回滚已经创建的消息
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating messages"})
+			return
+		}
+
+		// 将消息ID和创建时间添加到响应数组中
+		creationResponses = append(creationResponses, MessageCreationResponse{
+			MessageID: messages[i].MessageID,
+			CreatedAt: messages[i].CreatedAt,
+			Content:   messages[i].Content,
+			Role:      messages[i].Role,
+		})
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "Messages created successfully",
+		"data":    creationResponses,
+	})
+}
+
 // ListMessages lists messages based on filtering parameters
 func (h *MessageHandler) ListMessages(c *gin.Context) {
 	conversationID := c.Query("conversationID")

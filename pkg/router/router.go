@@ -76,6 +76,7 @@ func Setup(db *gorm.DB, jwtKey []byte) *gin.Engine {
 
 		// 消息路由
 		authRoutes.POST("/message", messageHandler.CreateMessage)
+		authRoutes.POST("/messages/multiple", messageHandler.CreateMultipleMessages)
 		authRoutes.GET("/message/:messageID", messageHandler.GetMessage)
 		authRoutes.PUT("/message/:messageID", messageHandler.UpdateMessage)
 		authRoutes.DELETE("/message/:messageID", messageHandler.DeleteMessage)
