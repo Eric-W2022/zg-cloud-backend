@@ -5,6 +5,7 @@ package handler
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"math"
 	"net/http"
 	"time"
 	"zcloud-bg/internal/model"
@@ -100,43 +101,61 @@ func (h *MessageHandler) DeleteMessage(c *gin.Context) {
 //OutputTokens   int            `gorm:"type:int;comment:输出的令牌数量" json:"output_tokens"`
 //TotalTokens    int            `gorm:"type:int;comment:总令牌数量" json:"total_tokens"`
 
-// CreateMessage creates a new message
+// CreateMessage 创建新消息
 func (h *MessageHandler) CreateMessage(c *gin.Context) {
 	var newMessage model.Message
 
-	// Assuming we extract senderID, conversationID, and content from the request body
+	// 假设我们从请求体中提取 senderID、conversationID 和 content
 	if err := c.BindJSON(&newMessage); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的请求体"})
 		return
 	}
 
 	// 解析 UserID
 	userID, exists := c.Get("UserID")
 	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "UserID not found in context"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "上下文中找不到UserID"})
 		return
 	}
 
 	userIDStr, ok := userID.(string)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "UserID is not a string"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "UserID 不是字符串"})
 		return
 	}
 
-	newMessage.MessageID = uuid.New().String() // Generate a new UUID for the message
+	newMessage.MessageID = uuid.New().String() // 为消息生成一个新的UUID
 	newMessage.SenderID = userIDStr
 	newMessage.CreatedAt = time.Now() // 设置当前时间为消息创建时间
 
+	// 根据内容长度计算 handling_time
+	contentLength := len(newMessage.Content)
+	var handlingTime float64
+
+	if contentLength <= 10 {
+		handlingTime = float64(contentLength) * 0.5
+	} else if contentLength <= 20 {
+		handlingTime = float64(contentLength) * 0.2
+	} else if contentLength <= 30 {
+		handlingTime = float64(contentLength) * 0.2
+	} else {
+		handlingTime = math.Min(float64(contentLength)*0.15, 15)
+	}
+
+	// 假设你想要以秒为单位的 handling_time
+	handlingTimeInSeconds := int(handlingTime)
+
 	err := h.MessageService.CreateMessage(&newMessage)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating message"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建消息时出错"})
 		return
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"message":    "Message created successfully",
-		"message_id": newMessage.MessageID,
-		"created_at": newMessage.CreatedAt,
+		"message":       "消息创建成功",
+		"message_id":    newMessage.MessageID,
+		"created_at":    newMessage.CreatedAt,
+		"handling_time": handlingTimeInSeconds, // 将 handlingTime 转换为秒
 	})
 }
 
