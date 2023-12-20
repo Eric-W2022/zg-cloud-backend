@@ -1,11 +1,10 @@
-// main.go
-
 package main
 
 import (
-	"github.com/joho/godotenv"
 	"log"
 	"os"
+
+	"github.com/joho/godotenv"
 	"zcloud-bg/internal/model"
 	"zcloud-bg/pkg/db"
 	"zcloud-bg/pkg/router"
@@ -20,13 +19,24 @@ func main() {
 	}
 
 	// 读取环境变量
-	mysqlUsername := os.Getenv("MYSQL_USERNAME")
-	mysqlPassword := os.Getenv("MYSQL_PASSWORD")
-	//mysqlAddress := os.Getenv("MYSQL_ADDRESS")
-	jwtSecretKey := os.Getenv("JWT_SECRET_KEY")
+	env := os.Getenv("ENV")
+
+	var mysqlAddress, mysqlUsername, mysqlPassword, mysqlDatabase string
+
+	if env == "development" {
+		mysqlAddress = os.Getenv("MYSQL_ADDRESS_DEV")
+		mysqlUsername = os.Getenv("MYSQL_USERNAME_DEV")
+		mysqlPassword = os.Getenv("MYSQL_PASSWORD_DEV")
+		mysqlDatabase = os.Getenv("MYSQL_DATABASE_DEV")
+	} else {
+		mysqlAddress = os.Getenv("MYSQL_ADDRESS_PROD")
+		mysqlUsername = os.Getenv("MYSQL_USERNAME_PROD")
+		mysqlPassword = os.Getenv("MYSQL_PASSWORD_PROD")
+		mysqlDatabase = os.Getenv("MYSQL_DATABASE_PROD")
+	}
 
 	// 初始化数据库连接
-	database, err := db.InitDatabase(mysqlUsername, mysqlPassword, "gz-cdb-6kgcteld.sql.tencentcdb.com:63181")
+	database, err := db.InitDatabase(mysqlUsername, mysqlPassword, mysqlAddress, mysqlDatabase)
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
@@ -37,10 +47,12 @@ func main() {
 	}
 
 	// 设置路由
+	jwtSecretKey := os.Getenv("JWT_SECRET_KEY")
 	r := router.Setup(database, []byte(jwtSecretKey))
 
 	// 启动 Gin 服务器
-	if err := r.Run(":" + "80"); err != nil {
+	appPort := os.Getenv("APP_PORT")
+	if err := r.Run(":" + appPort); err != nil {
 		log.Fatal("Failed to run server:", err)
 	}
 }

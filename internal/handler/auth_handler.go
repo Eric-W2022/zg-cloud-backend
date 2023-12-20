@@ -12,7 +12,6 @@ import (
 )
 
 // AuthHandler 结构体包含了需要的服务
-// AuthHandler 结构体包含了需要的服务
 type AuthHandler struct {
 	AuthService               *service.AuthService
 	UserService               *service.UserService               // 这需要被初始化
