@@ -58,6 +58,11 @@ func Setup(db *gorm.DB, jwtKey []byte) *gin.Engine {
 	messageService := service.NewMessageService(messageRepo)
 	messageHandler := handler.NewMessageHandler(messageService)
 
+	// 员工相关设置
+	employeeRepo := &repository.EmployeeRepository{DB: db}
+	employeeService := service.NewEmployeeService(employeeRepo)
+	employeeHandler := handler.NewEmployeeHandler(employeeService)
+
 	// 公开路由
 	r.POST("/login", authHandler.Login)
 
@@ -81,6 +86,9 @@ func Setup(db *gorm.DB, jwtKey []byte) *gin.Engine {
 		authRoutes.PUT("/message/:messageID", messageHandler.UpdateMessage)
 		authRoutes.DELETE("/message/:messageID", messageHandler.DeleteMessage)
 		authRoutes.GET("/messages", messageHandler.ListMessages)
+
+		//员工路由
+		authRoutes.GET("/employee/:organizationID", employeeHandler.GetEmployee)
 
 	}
 
