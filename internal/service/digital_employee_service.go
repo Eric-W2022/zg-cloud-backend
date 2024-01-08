@@ -27,3 +27,7 @@ func (s *EmployeeService) GetEmployeeByOrgID(organizationID string) (*model.Digi
 
 	return employee, nil
 }
+
+func (s *EmployeeService) ListEmployees(organizationID, userID string) ([]model.Digital_Employee, error) {
+	return s.EmployeeRepo.ListDigitalEmployees(organizationID, userID)
+}

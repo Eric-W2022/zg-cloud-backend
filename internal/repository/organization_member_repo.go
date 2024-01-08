@@ -48,9 +48,9 @@ func (repo *OrganizationMemberRepository) ListOrganizationMembers(organizationID
 	if organizationID != "" {
 		query = query.Where("organization_id = ?", organizationID)
 	}
-	if userID != "" {
-		query = query.Where("user_id = ?", userID)
-	}
+	// if userID != "" {
+	// 	query = query.Where("user_id = ?", userID)
+	// }
 
 	// 执行查询
 	result := query.Find(&members)
@@ -59,4 +59,21 @@ func (repo *OrganizationMemberRepository) ListOrganizationMembers(organizationID
 	}
 
 	return members, nil
+}
+
+func (repo *OrganizationMemberRepository) ListOrganizationManagers(organizationID, userID string) ([]model.OrganizationMember, error) {
+	var managers []model.OrganizationMember
+	result := repo.DB.
+        Joins("INNER JOIN roles ON organization_members.role_id = roles.role_id").
+        Where("organization_members.organization_id = ?", organizationID).
+        Where("roles.role_name = ?", "管理员").
+        Order("organization_members.joined_at DESC").
+        Find(&managers)
+
+    if result.Error != nil {
+        return nil, result.Error
+    }
+
+    return managers, nil
+
 }

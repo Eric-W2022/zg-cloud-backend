@@ -42,3 +42,13 @@ func (repo *UserRepository) FindByID(userID string) (*model.User, error) { // �
 
 	return &user, nil
 }
+
+func (repo *UserRepository) Update(user *model.User) error {
+	// 使用 GORM 更新记录
+	result := repo.DB.Save(user)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	return nil
+}

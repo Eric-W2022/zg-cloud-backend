@@ -36,3 +36,7 @@ func (s *OrganizationMemberService) ListMembers(organizationID, userID string) (
 func (s *OrganizationMemberService) GetUserOrganizations(userID string) ([]model.OrganizationMember, error) {
 	return s.repo.ListOrganizationMembers("", userID)
 }
+
+func (s *OrganizationMemberService) ListManagers(organizationID, userID string) ([]model.OrganizationMember, error) {
+	return s.repo.ListOrganizationManagers(organizationID, userID)
+}

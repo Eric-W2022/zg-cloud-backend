@@ -30,3 +30,24 @@ func (s *UserService) GetUserByID(userID string) (*model.User, error) {
 
 	return user, nil
 }
+
+func (s *UserService) UpdateUserName(userID string, newName string) error {
+	// Fetch the user from the repository
+	user, err := s.UserRepo.FindByID(userID)
+	if err != nil {
+		fmt.Printf("Error in FindByID: %v\n", err)
+		return err
+	}
+
+	// Update the user's name
+	user.Username = newName
+
+	// Save the updated user back to the repository
+	err = s.UserRepo.Update(user)
+	if err != nil {
+		fmt.Printf("Error in Update: %v\n", err)
+		return err
+	}
+
+	return nil
+}

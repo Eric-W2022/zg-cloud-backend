@@ -41,8 +41,14 @@ func Setup(db *gorm.DB, jwtKey []byte) *gin.Engine {
 	userService := service.NewUserService(userRepo)
 	userHandler := handler.NewUserHandler(userService)
 
+	// 角色相关设置
+	roleRepo := &repository.RoleRepository{DB: db}
+	roleService := service.NewRoleService(roleRepo)
+	roleHandler := handler.NewRoleHandler(roleService)
+
 	organizationMemberRepo := &repository.OrganizationMemberRepository{DB: db}
 	organizationMemberService := service.NewOrganizationMemberService(organizationMemberRepo) // Add OrganizationMemberService
+	organizationMemberHandler := handler.NewOrganizationMemberHandler(organizationMemberService, roleService, userService)
 
 	// 授权相关设置
 	authService := &service.AuthService{UserRepo: userRepo}
@@ -63,6 +69,19 @@ func Setup(db *gorm.DB, jwtKey []byte) *gin.Engine {
 	employeeService := service.NewEmployeeService(employeeRepo)
 	employeeHandler := handler.NewEmployeeHandler(employeeService)
 
+	// 组织相关设置
+	organizationRepo := &repository.OrganizationRepository{DB: db}
+	organizationService := service.NewOrganizationService(organizationRepo)
+	organizationHandler := handler.NewOrganizationHandler(organizationService, organizationMemberService, employeeService)
+
+
+
+
+	// 组织成员相关设置
+	// organizationmemberRepo := &repository.OrganizationMemberRepository{DB: db}
+	// organizationmemberService := service.NewOrganizationMemberService(organizationmemberRepo)
+	// organizationmemberHandler := handler.NewOrganizationMemberHandler(organizationmemberService)
+
 	// 公开路由
 	r.POST("/login", authHandler.Login)
 
@@ -71,6 +90,8 @@ func Setup(db *gorm.DB, jwtKey []byte) *gin.Engine {
 	{
 		// 用户路由
 		authRoutes.GET("/user/info", userHandler.GetUser)
+		authRoutes.GET("/username/:userID", userHandler.GetNameByID)
+		authRoutes.PUT("/username/:userID", userHandler.UpdateUserName)
 
 		// 对话（会话）路由
 		authRoutes.POST("/conversation", conversationHandler.CreateConversation)
@@ -87,8 +108,19 @@ func Setup(db *gorm.DB, jwtKey []byte) *gin.Engine {
 		authRoutes.DELETE("/message/:messageID", messageHandler.DeleteMessage)
 		authRoutes.GET("/messages", messageHandler.ListMessages)
 
-		//员工路由
+		//数字员工路由
 		authRoutes.GET("/employee/:organizationID", employeeHandler.GetEmployee)
+
+		//组织员工路由
+		authRoutes.GET("/members/:organizationID/:userID", organizationMemberHandler.ListMembers)
+
+		//角色路由
+		authRoutes.GET("/role/:roleID", roleHandler.GetRole)
+
+		//组织路由
+		authRoutes.GET("/organization/data/:organizationID/:userID", organizationHandler.GetOrganizationData)
+		authRoutes.PUT("/organization/:organizationID/:userID", organizationHandler.UpdateOrganizationName)
+		authRoutes.GET("/organization/:organizationID", organizationHandler.GetOrganization)
 
 	}
 
