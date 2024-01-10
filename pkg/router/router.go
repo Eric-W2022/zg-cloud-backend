@@ -74,9 +74,6 @@ func Setup(db *gorm.DB, jwtKey []byte) *gin.Engine {
 	organizationService := service.NewOrganizationService(organizationRepo)
 	organizationHandler := handler.NewOrganizationHandler(organizationService, organizationMemberService, employeeService)
 
-
-
-
 	// 组织成员相关设置
 	// organizationmemberRepo := &repository.OrganizationMemberRepository{DB: db}
 	// organizationmemberService := service.NewOrganizationMemberService(organizationmemberRepo)
@@ -91,7 +88,7 @@ func Setup(db *gorm.DB, jwtKey []byte) *gin.Engine {
 		// 用户路由
 		authRoutes.GET("/user/info", userHandler.GetUser)
 		authRoutes.GET("/username/:userID", userHandler.GetNameByID)
-		authRoutes.PUT("/username/:userID", userHandler.UpdateUserName)
+		authRoutes.PUT("/username", userHandler.UpdateUserName)
 
 		// 对话（会话）路由
 		authRoutes.POST("/conversation", conversationHandler.CreateConversation)
