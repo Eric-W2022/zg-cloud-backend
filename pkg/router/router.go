@@ -106,7 +106,7 @@ func Setup(db *gorm.DB, jwtKey []byte) *gin.Engine {
 		authRoutes.GET("/messages", messageHandler.ListMessages)
 
 		//数字员工路由
-		authRoutes.GET("/employee/:organizationID", employeeHandler.GetEmployee)
+		authRoutes.GET("/employee/:organizationID", employeeHandler.ListEmployees)
 
 		//组织员工路由
 		authRoutes.GET("/members/:organizationID/:userID", organizationMemberHandler.ListMembers)

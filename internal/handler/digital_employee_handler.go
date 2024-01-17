@@ -18,18 +18,25 @@ func NewEmployeeHandler(employeeService *service.EmployeeService) *EmployeeHandl
 	}
 }
 
-func (h *EmployeeHandler) GetEmployee(c *gin.Context) {
+func (h *EmployeeHandler) ListEmployees(c *gin.Context) {
 	organizationID := c.Param("organizationID")
     if organizationID == "" {
         c.JSON(http.StatusBadRequest, gin.H{"error": "Organization ID not provided"})
         return
     }
 
-    employee, err := h.EmployeeService.GetEmployeeByOrgID(organizationID)
+    userID, exists := c.Get("UserID")
+	if !exists {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "User ID not found"})
+		return
+	}
+
+    employees, err := h.EmployeeService.ListEmployees(organizationID, userID.(string))
     if err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving employee"})
         return
     }
 
-    c.JSON(http.StatusOK, employee)
+    // response := []map[string]interface{}{}
+    c.JSON(http.StatusOK, employees)
 }
